@@ -43,14 +43,21 @@ gameBoard.addEventListener('click', (e) => {
 });
 
 function hideTowerPopup() {
+    if (selectedTowerSpot && selectedTowerSpot.rangeEl) selectedTowerSpot.rangeEl.style.display = 'none';
     towerPopup.classList.add('hidden');
     selectedTowerSpot = null;
 }
 
 function showTowerPopup(spot) {
+    if (selectedTowerSpot && selectedTowerSpot.rangeEl) selectedTowerSpot.rangeEl.style.display = 'none';
     selectedTowerSpot = spot;
     updatePopupUIIfSelected(spot.tower);
     towerPopup.classList.remove('hidden');
+    if (spot.rangeEl && spot.tower) {
+        spot.rangeEl.style.width = (spot.tower.range * 2) + 'px';
+        spot.rangeEl.style.height = (spot.tower.range * 2) + 'px';
+        spot.rangeEl.style.display = 'block';
+    }
 }
 
 function updatePopupUIIfSelected(tower) {
@@ -141,7 +148,7 @@ const towerSpots = [
 const towerTypes = {
     basic: { cost: 50, range: 140, damage: 30, fireRate: 800, color: '#58a6ff', type: 'basic' },
     sniper: { cost: 100, range: 250, damage: 100, fireRate: 2000, color: '#bc8cff', type: 'sniper' },
-    ray: { cost: 150, range: 200, damage: 15, fireRate: 1500, color: '#ff5e00', type: 'ray' }
+    bomb: { cost: 150, range: 180, damage: 45, fireRate: 2500, color: '#ffaa00', type: 'bomb', aoe: 90 }
 };
 
 // Initialization
@@ -190,6 +197,7 @@ function drawTowerSpots() {
         rangeEl.style.top = spot.y + 'px';
         rangeEl.style.display = 'none';
         gameBoard.appendChild(rangeEl);
+        spot.rangeEl = rangeEl;
 
         spotEl.addEventListener('mouseenter', () => {
              if (currentTowerSelection !== 'pointer' && !spot.tower) {
@@ -201,7 +209,7 @@ function drawTowerSpots() {
         });
 
         spotEl.addEventListener('mouseleave', () => {
-             if (!spot.tower) {
+             if (!spot.tower || selectedTowerSpot !== spot) {
                  rangeEl.style.display = 'none';
              }
         });
@@ -227,7 +235,7 @@ function drawTowerSpots() {
                     
                     const levelIndicator = document.createElement('div');
                     levelIndicator.className = 'tower-level';
-                    levelIndicator.textContent = 'Lvl 1';
+                    levelIndicator.textContent = '★';
                     towerEl.appendChild(levelIndicator);
                     
                     spotEl.appendChild(towerEl);
@@ -447,11 +455,7 @@ function updateTowers(timestamp) {
             }
             
             if (target) {
-                if (tower.type === 'ray') {
-                    fireRay(tower, target);
-                } else {
-                    fireProjectile(tower, target);
-                }
+                fireProjectile(tower, target);
                 tower.lastFired = timestamp;
                 
                 const towerEl = document.querySelector(`.tower-spot[style*="left: ${tower.x}px"][style*="top: ${tower.y}px"] .tower`);
@@ -473,6 +477,16 @@ function fireProjectile(tower, target) {
     el.style.top = tower.y + 'px';
     el.style.backgroundColor = tower.color;
     el.style.boxShadow = `0 0 8px ${tower.color}`;
+    
+    let speed = 500;
+    if (tower.type === 'bomb') {
+        speed = 200;
+        el.style.width = '12px';
+        el.style.height = '12px';
+    } else if (tower.type === 'sniper') {
+        speed = 800;
+    }
+    
     gameBoard.appendChild(el);
     
     projectiles.push({
@@ -480,55 +494,12 @@ function fireProjectile(tower, target) {
         x: tower.x,
         y: tower.y,
         target: target,
+        targetX: target.x,
+        targetY: target.y,
         damage: tower.damage,
         towerInfo: tower,
-        speed: 500
+        speed: speed
     });
-}
-
-function dist2(v, w) { return (v.x - w.x)**2 + (v.y - w.y)**2; }
-function distToSegmentSquared(v, w, p) {
-  const l2 = dist2(v, w);
-  if (l2 === 0) return dist2(p, v);
-  let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
-  t = Math.max(0, Math.min(1, t));
-  return dist2(p, { x: v.x + t * (w.x - v.x), y: v.y + t * (w.y - v.y) });
-}
-
-function fireRay(tower, target) {
-    const dx = target.x - tower.x;
-    const dy = target.y - tower.y;
-    const angle = Math.atan2(dy, dx);
-    const length = tower.range;
-    
-    const beam = document.createElement('div');
-    beam.className = 'beam';
-    beam.style.left = tower.x + 'px';
-    beam.style.top = tower.y + 'px';
-    beam.style.width = length + 'px';
-    beam.style.transform = `translate(0, -50%) rotate(${angle * 180 / Math.PI}deg)`;
-    gameBoard.appendChild(beam);
-    
-    setTimeout(() => {
-        beam.style.opacity = '0';
-        setTimeout(() => beam.remove(), 200);
-    }, 50);
-
-    const p1x = tower.x;
-    const p1y = tower.y;
-    const p2x = tower.x + length * Math.cos(angle);
-    const p2y = tower.y + length * Math.sin(angle);
-    
-    const hitRadius = 25;
-
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        const enemy = enemies[i];
-        const distSq = distToSegmentSquared({x: p1x, y: p1y}, {x: p2x, y: p2y}, {x: enemy.x, y: enemy.y});
-        
-        if (Math.sqrt(distSq) <= hitRadius) {
-            applyDamage(enemy, tower.damage, tower);
-        }
-    }
 }
 
 function applyDamage(enemy, damage, tower) {
@@ -547,13 +518,16 @@ function applyDamage(enemy, damage, tower) {
     }
     
     if (tower.level > oldLevel) {
-        tower.levelEl.textContent = `Lvl ${tower.level}`;
+        tower.levelEl.textContent = '★'.repeat(Math.min(5, tower.level));
         tower.levelEl.style.transform = 'scale(1.5)';
         setTimeout(() => { if (tower.levelEl) tower.levelEl.style.transform = 'scale(1)'; }, 200);
         const towerEl = tower.levelEl.parentElement;
         if (towerEl) {
-            towerEl.style.boxShadow = `0 0 30px ${tower.color}`;
-            setTimeout(() => { if(towerEl) towerEl.style.boxShadow = `0 0 15px ${tower.color}`; }, 300);
+            const scale = 1 + (tower.level - 1) * 0.15;
+            towerEl.style.width = (26 * scale) + 'px';
+            towerEl.style.height = (26 * scale) + 'px';
+            towerEl.style.boxShadow = `0 0 ${15 + tower.level * 5}px ${tower.color}`;
+            setTimeout(() => { if(towerEl) towerEl.style.boxShadow = `0 0 ${10 + tower.level * 2}px ${tower.color}`; }, 300);
         }
     }
     
@@ -593,22 +567,52 @@ function applyDamage(enemy, damage, tower) {
 function updateProjectiles(dt) {
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const proj = projectiles[i];
-        const targetRef = proj.target;
         
-        if (!enemies.includes(targetRef)) {
-            proj.el.remove();
-            projectiles.splice(i, 1);
-            continue;
+        if (enemies.includes(proj.target)) {
+            proj.targetX = proj.target.x;
+            proj.targetY = proj.target.y;
         }
         
-        const dx = targetRef.x - proj.x;
-        const dy = targetRef.y - proj.y;
+        const dx = proj.targetX - proj.x;
+        const dy = proj.targetY - proj.y;
         const dist = Math.sqrt(dx*dx + dy*dy);
         
         const moveDist = proj.speed * dt;
         
         if (moveDist >= dist) {
-            applyDamage(targetRef, proj.damage, proj.towerInfo);
+            if (proj.towerInfo.type === 'bomb') {
+                const ex = proj.targetX;
+                const ey = proj.targetY;
+                const radius = proj.towerInfo.aoe;
+                
+                const explosion = document.createElement('div');
+                explosion.className = 'explosion';
+                explosion.style.left = ex + 'px';
+                explosion.style.top = ey + 'px';
+                explosion.style.width = (radius * 2) + 'px';
+                explosion.style.height = (radius * 2) + 'px';
+                gameBoard.appendChild(explosion);
+                
+                requestAnimationFrame(() => {
+                    explosion.style.transform = 'translate(-50%, -50%) scale(1)';
+                    setTimeout(() => {
+                        explosion.style.opacity = '0';
+                        setTimeout(() => explosion.remove(), 200);
+                    }, 100);
+                });
+                
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const e = enemies[j];
+                    if (distance(ex, ey, e.x, e.y) <= radius) {
+                        applyDamage(e, proj.damage, proj.towerInfo);
+                    }
+                }
+            } else {
+                if (enemies.includes(proj.target)) {
+                    applyDamage(proj.target, proj.damage, proj.towerInfo);
+                }
+            }
+            
             proj.el.remove();
             projectiles.splice(i, 1);
         } else {
