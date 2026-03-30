@@ -6,6 +6,7 @@
     --basic-tower: #58a6ff;
     --sniper-tower: #bc8cff;
     --bomb-tower: #ffaa00;
+    --frost-tower: #00d2ff;
     --square-enemy: #f85149;
     --triangle-enemy: #d29922;
     --text-color: #c9d1d9;
@@ -234,6 +235,11 @@ body {
     box-shadow: 0 0 15px var(--bomb-tower);
 }
 
+.tower.frost {
+    background-color: var(--frost-tower);
+    box-shadow: 0 0 15px var(--frost-tower);
+}
+
 .tower-range {
     position: absolute;
     border-radius: 50%;
@@ -277,6 +283,15 @@ body {
     filter: drop-shadow(0 0 8px var(--triangle-enemy));
 }
 
+.shape.armored {
+    width: 24px;
+    height: 24px;
+    background-color: #7f8c8d;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    box-shadow: inset 0 0 0 3px #2c3e50;
+    filter: drop-shadow(0 0 6px #7f8c8d);
+}
+
 .health-bar-container {
     width: 120%;
     height: 4px;
@@ -286,6 +301,12 @@ body {
     left: -10%;
     border-radius: 2px;
     overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.health-bar-container.visible {
+    opacity: 1;
 }
 
 .health-bar {
@@ -424,4 +445,181 @@ body {
     color: white;
     font-family: monospace;
     text-shadow: 1px 1px 0 #000;
+}
+
+#build-popup {
+    position: absolute;
+    background: var(--board-bg);
+    border: 2px solid var(--border-color);
+    padding: 10px;
+    border-radius: 8px;
+    z-index: 110;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    transform: translate(-50%, -100%);
+    margin-top: -20px;
+}
+
+#build-popup.hidden {
+    display: none;
+}
+
+.build-btn {
+    background: #238636;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.build-btn:hover { background: #2ea043; }
+
+#btn-close-build {
+    background: #30363d;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+#btn-close-build:hover { background: #484f58; }
+
+/* Boss */
+.enemy.boss {
+    width: 60px;
+    height: 60px;
+}
+
+.enemy.boss .health-bar-container {
+    width: 140%;
+    left: -20%;
+    top: -15px;
+}
+
+.shape.pentagon {
+    width: 40px;
+    height: 40px;
+    background-color: #9b59b6;
+    clip-path: polygon(50% 0%, 100% 38%, 81% 100%, 19% 100%, 0% 38%);
+    animation: spin 4s linear infinite;
+    filter: drop-shadow(0 0 15px #9b59b6);
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+.boss-aura {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(155, 89, 182, 0.2) 0%, transparent 60%);
+    pointer-events: none;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+    animation: pulse 2s infinite alternate;
+}
+
+@keyframes pulse {
+    from { opacity: 0.5; transform: translate(-50%, -50%) scale(0.8); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.floating-text {
+    position: absolute;
+    color: gold;
+    font-weight: bold;
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 200;
+    animation: floatUp 1s ease-out forwards;
+    text-shadow: 1px 1px 2px #000;
+}
+
+@keyframes floatUp {
+    0% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -40px) scale(1.2); opacity: 0; }
+}
+
+#spells-selection {
+    margin-top: 20px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+}
+
+#spells-selection h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.spell-btn {
+    background: #21262d;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px 10px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s, border-color 0.2s;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.spell-btn:hover {
+    background: #30363d;
+}
+
+.spell-btn.selected {
+    border-color: #f85149;
+    background: rgba(248, 81, 73, 0.1);
+}
+
+.spell-icon {
+    position: relative;
+    z-index: 2;
+}
+
+.spell-cd-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1;
+}
+
+.meteor-indicator {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(248, 81, 73, 0.2);
+    border: 2px dashed #f85149;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    display: none;
+    z-index: 100;
+}
+
+#game-board.frozen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 210, 255, 0.15);
+    pointer-events: none;
+    z-index: 50;
+    box-shadow: inset 0 0 50px rgba(0, 210, 255, 0.5);
 }

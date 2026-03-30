@@ -18,8 +18,18 @@ let projectiles = [];
 let towers = [];
 let currentTowerSelection = 'pointer';
 let selectedTowerSpot = null;
+let selectedEmptySpot = null;
+
+const spells = {
+    meteor: { cd: 15000, lastUsed: -15000, radius: 150, damage: 300 },
+    freeze: { cd: 30000, lastUsed: -30000, duration: 5000, active: false }
+};
+let currentSpellSelection = null;
 
 const XP_THRESHOLDS = [0, 500, 1500, 3000, 6000];
+
+const buildPopup = document.getElementById('build-popup');
+const btnCloseBuild = document.getElementById('btn-close-build');
 
 const towerPopup = document.getElementById('tower-popup');
 const popupTitle = document.getElementById('popup-title');
@@ -38,8 +48,133 @@ const btnClosePopup = document.getElementById('btn-close-popup');
 btnClosePopup.addEventListener('click', hideTowerPopup);
 btnSell.addEventListener('click', sellTower);
 
+const meteorIndicator = document.createElement('div');
+meteorIndicator.className = 'meteor-indicator';
+gameBoard.appendChild(meteorIndicator);
+
+gameBoard.addEventListener('mousemove', (e) => {
+    if (currentSpellSelection === 'meteor') {
+        const rect = gameBoard.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        meteorIndicator.style.left = x + 'px';
+        meteorIndicator.style.top = y + 'px';
+    }
+});
+
+gameBoard.addEventListener('mouseleave', () => {
+    meteorIndicator.style.display = 'none';
+});
+
 gameBoard.addEventListener('click', (e) => {
-    if (e.target === gameBoard) hideTowerPopup();
+    if (currentSpellSelection === 'meteor') {
+        const rect = gameBoard.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const radius = spells.meteor.radius;
+        const explosion = document.createElement('div');
+        explosion.className = 'explosion';
+        explosion.style.left = x + 'px';
+        explosion.style.top = y + 'px';
+        explosion.style.width = (radius * 2) + 'px';
+        explosion.style.height = (radius * 2) + 'px';
+        explosion.style.background = 'radial-gradient(circle, rgba(248, 81, 73, 0.8) 0%, transparent 70%)';
+        gameBoard.appendChild(explosion);
+        
+        requestAnimationFrame(() => {
+            explosion.style.transform = 'translate(-50%, -50%) scale(1)';
+            setTimeout(() => {
+                explosion.style.opacity = '0';
+                setTimeout(() => explosion.remove(), 300);
+            }, 200);
+        });
+        
+        const mockTower = { type: 'meteor', totalDamage: 0, level: 1, levelEl: document.createElement('div'), color: 'transparent' };
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const enemy = enemies[i];
+            if (distance(x, y, enemy.x, enemy.y) <= radius) {
+                applyDamage(enemy, spells.meteor.damage, mockTower);
+            }
+        }
+        
+        spells.meteor.lastUsed = performance.now();
+        currentSpellSelection = null;
+        meteorIndicator.style.display = 'none';
+        document.getElementById('btn-spell-meteor').classList.remove('selected');
+        return;
+    }
+
+    if (e.target === gameBoard) {
+        hideTowerPopup();
+        hideBuildPopup();
+    }
+});
+
+function hideBuildPopup() {
+    buildPopup.classList.add('hidden');
+    if (selectedEmptySpot && selectedEmptySpot.rangeEl) selectedEmptySpot.rangeEl.style.display = 'none';
+    selectedEmptySpot = null;
+}
+
+function showBuildPopup(spot) {
+    if (selectedTowerSpot) hideTowerPopup();
+    
+    selectedEmptySpot = spot;
+    buildPopup.style.left = spot.x + 'px';
+    buildPopup.style.top = spot.y + 'px';
+    buildPopup.classList.remove('hidden');
+    
+    if (spot.rangeEl) spot.rangeEl.style.display = 'none';
+}
+
+btnCloseBuild.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideBuildPopup();
+});
+
+document.querySelectorAll('.build-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const type = btn.dataset.type;
+        const towerData = towerTypes[type];
+        
+        if (money >= towerData.cost && selectedEmptySpot) {
+            money -= towerData.cost;
+            updateUI();
+            
+            const spotEl = selectedEmptySpot.el;
+            const towerEl = document.createElement('div');
+            towerEl.className = `tower ${type}`;
+            towerEl.style.left = '50%';
+            towerEl.style.top = '50%';
+            
+            const levelIndicator = document.createElement('div');
+            levelIndicator.className = 'tower-level';
+            levelIndicator.textContent = '★';
+            towerEl.appendChild(levelIndicator);
+            
+            spotEl.appendChild(towerEl);
+            spotEl.style.borderColor = towerData.color;
+            
+            selectedEmptySpot.tower = {
+                type: type,
+                ...towerData,
+                lastFired: 0,
+                totalDamage: 0,
+                level: 1,
+                levelEl: levelIndicator,
+                x: selectedEmptySpot.x,
+                y: selectedEmptySpot.y
+            };
+            towers.push(selectedEmptySpot.tower);
+            
+            if (selectedEmptySpot.rangeEl) selectedEmptySpot.rangeEl.style.display = 'none';
+            hideBuildPopup();
+        } else if (money < towerData.cost) {
+            alert("Not enough money!"); // Simple feedback
+        }
+    });
 });
 
 function hideTowerPopup() {
@@ -148,7 +283,8 @@ const towerSpots = [
 const towerTypes = {
     basic: { cost: 50, range: 140, damage: 30, fireRate: 800, color: '#58a6ff', type: 'basic' },
     sniper: { cost: 100, range: 250, damage: 100, fireRate: 2000, color: '#bc8cff', type: 'sniper' },
-    bomb: { cost: 150, range: 180, damage: 45, fireRate: 2500, color: '#ffaa00', type: 'bomb', aoe: 90 }
+    bomb: { cost: 150, range: 180, damage: 45, fireRate: 2500, color: '#ffaa00', type: 'bomb', aoe: 90 },
+    frost: { cost: 100, range: 150, damage: 10, fireRate: 1500, color: '#00d2ff', type: 'frost' }
 };
 
 // Initialization
@@ -200,12 +336,6 @@ function drawTowerSpots() {
         spot.rangeEl = rangeEl;
 
         spotEl.addEventListener('mouseenter', () => {
-             if (currentTowerSelection !== 'pointer' && !spot.tower) {
-                 const range = towerTypes[currentTowerSelection].range;
-                 rangeEl.style.width = (range * 2) + 'px';
-                 rangeEl.style.height = (range * 2) + 'px';
-                 rangeEl.style.display = 'block';
-             }
         });
 
         spotEl.addEventListener('mouseleave', () => {
@@ -217,47 +347,13 @@ function drawTowerSpots() {
         spot.el = spotEl;
         
         spotEl.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (spot.tower) {
-                e.stopPropagation();
+                hideBuildPopup();
                 showTowerPopup(spot);
-            } else if (currentTowerSelection !== 'pointer') {
-                const type = currentTowerSelection;
-                const towerData = towerTypes[type];
-                
-                if (money >= towerData.cost) {
-                    money -= towerData.cost;
-                    updateUI();
-                    
-                    const towerEl = document.createElement('div');
-                    towerEl.className = `tower ${type}`;
-                    towerEl.style.left = '50%';
-                    towerEl.style.top = '50%';
-                    
-                    const levelIndicator = document.createElement('div');
-                    levelIndicator.className = 'tower-level';
-                    levelIndicator.textContent = '★';
-                    towerEl.appendChild(levelIndicator);
-                    
-                    spotEl.appendChild(towerEl);
-                    spotEl.style.borderColor = towerData.color;
-                    
-                    spot.tower = {
-                        type: type,
-                        ...towerData,
-                        lastFired: 0,
-                        totalDamage: 0, // Track damage
-                        level: 1,
-                        levelEl: levelIndicator,
-                        x: spot.x,
-                        y: spot.y
-                    };
-                    towers.push(spot.tower);
-                    
-                    rangeEl.style.display = 'none'; 
-                    currentTowerSelection = 'pointer';
-                    updateSelectionUI();
-                    hideTowerPopup();
-                }
+            } else {
+                hideTowerPopup();
+                showBuildPopup(spot);
             }
         });
         
@@ -272,23 +368,30 @@ function drawBase() {
     base.style.top = lastPoint.y + 'px';
 }
 
-function updateSelectionUI() {
-    towerButtons.forEach(btn => {
-        if (btn.dataset.type === currentTowerSelection) {
-            btn.classList.add('selected');
+// Side panel handlers removed due to QOL update
+
+document.getElementById('btn-spell-freeze').addEventListener('click', () => {
+    const now = performance.now();
+    if (now - spells.freeze.lastUsed >= spells.freeze.cd) {
+        spells.freeze.lastUsed = now;
+        spells.freeze.active = true;
+        gameBoard.classList.add('frozen');
+    }
+});
+
+document.getElementById('btn-spell-meteor').addEventListener('click', () => {
+    const now = performance.now();
+    if (now - spells.meteor.lastUsed >= spells.meteor.cd) {
+        if (currentSpellSelection === 'meteor') {
+            currentSpellSelection = null;
+            document.getElementById('btn-spell-meteor').classList.remove('selected');
+            meteorIndicator.style.display = 'none';
         } else {
-            btn.classList.remove('selected');
+            currentSpellSelection = 'meteor';
+            document.getElementById('btn-spell-meteor').classList.add('selected');
+            meteorIndicator.style.display = 'block';
         }
-    });
-
-    document.querySelectorAll('.tower-range').forEach(el => el.style.display = 'none');
-}
-
-towerButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-        currentTowerSelection = btn.dataset.type;
-        updateSelectionUI();
-    });
+    }
 });
 
 startWaveBtn.addEventListener('click', () => {
@@ -302,18 +405,28 @@ startWaveBtn.addEventListener('click', () => {
 });
 
 function spawnEnemy() {
-    const isTriangle = Math.random() > 0.4;
-    const type = isTriangle ? 'triangle' : 'square';
+    let isBoss = false;
+    let type = '';
     
-    // Wave multipliers
+    if (wave % 10 === 0 && enemiesToSpawn === 1) {
+        isBoss = true;
+        type = 'pentagon';
+    } else {
+        const rand = Math.random();
+        if (rand > 0.7) type = 'armored';
+        else if (rand > 0.3) type = 'triangle';
+        else type = 'square';
+    }
+    
     const waveMult = Math.pow(1.2, wave - 1);
     
-    const maxHealth = Math.floor((isTriangle ? 40 : 100) * waveMult);
-    const speed = (isTriangle ? 140 : 80) + (wave * 2);
-    const reward = isTriangle ? 5 : 10;
+    const maxHealth = isBoss ? Math.floor(1000 * waveMult) : Math.floor((type === 'armored' ? 150 : type === 'triangle' ? 40 : 100) * waveMult);
+    const speed = isBoss ? 50 + wave : (type === 'armored' ? 60 : type === 'triangle' ? 140 : 80) + (wave * 2);
+    const reward = isBoss ? 100 : (type === 'armored' ? 15 : type === 'triangle' ? 5 : 10);
     
     const el = document.createElement('div');
     el.className = `enemy`;
+    if (isBoss) el.classList.add('boss');
     
     const healthContainer = document.createElement('div');
     healthContainer.className = 'health-bar-container';
@@ -327,6 +440,12 @@ function spawnEnemy() {
     el.appendChild(healthContainer);
     el.appendChild(shape);
     
+    if (isBoss) {
+        const aura = document.createElement('div');
+        aura.className = 'boss-aura';
+        el.appendChild(aura);
+    }
+    
     el.style.left = path[0].x + 'px';
     el.style.top = path[0].y + 'px';
     gameBoard.appendChild(el);
@@ -335,6 +454,7 @@ function spawnEnemy() {
         el,
         shapeEl: shape,
         healthBar,
+        healthBarContainer: healthContainer,
         x: path[0].x,
         y: path[0].y,
         pathIndex: 0,
@@ -343,7 +463,9 @@ function spawnEnemy() {
         speed: speed,
         reward: reward,
         type: type,
+        isBoss: isBoss,
         speedMod: 1, 
+        slowTimer: 0
     });
 }
 
@@ -351,11 +473,52 @@ function distance(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2)**2 + (y1 - y2)**2);
 }
 
+function predictTargetPosition(tower, enemy, projSpeed) {
+    const dist = distance(tower.x, tower.y, enemy.x, enemy.y);
+    const timeToHit = dist / projSpeed;
+    let travelDist = enemy.speed * enemy.speedMod * timeToHit;
+    
+    let curX = enemy.x;
+    let curY = enemy.y;
+    let pathIdx = enemy.pathIndex;
+    
+    while (travelDist > 0 && pathIdx < path.length - 1) {
+        const p2 = path[pathIdx + 1];
+        const segDist = distance(curX, curY, p2.x, p2.y);
+        
+        if (travelDist > segDist) {
+            travelDist -= segDist;
+            curX = p2.x;
+            curY = p2.y;
+            pathIdx++;
+        } else {
+            const dx = p2.x - curX;
+            const dy = p2.y - curY;
+            curX += (dx / segDist) * travelDist;
+            curY += (dy / segDist) * travelDist;
+            travelDist = 0;
+        }
+    }
+    return { x: curX, y: curY };
+}
+
 function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
     const dt = Math.min((timestamp - lastTime) / 1000, 0.1); 
     const dtMs = timestamp - lastTime;
     lastTime = timestamp;
+    
+    // Spells state updates
+    if (spells.freeze.active && timestamp - spells.freeze.lastUsed >= spells.freeze.duration) {
+        spells.freeze.active = false;
+        gameBoard.classList.remove('frozen');
+    }
+    
+    const meteorProgress = Math.max(0, 100 - ((timestamp - spells.meteor.lastUsed) / spells.meteor.cd) * 100);
+    document.getElementById('cd-meteor').style.height = meteorProgress + '%';
+    
+    const freezeProgress = Math.max(0, 100 - ((timestamp - spells.freeze.lastUsed) / spells.freeze.cd) * 100);
+    document.getElementById('cd-freeze').style.height = freezeProgress + '%';
     
     if (state === 'playing') {
         spawnTimer += dtMs;
@@ -391,6 +554,30 @@ function gameLoop(timestamp) {
 }
 
 function updateEnemies(dt) {
+    if (spells.freeze.active) {
+        for (const enemy of enemies) enemy.speedMod = 0;
+    } else {
+        for (const enemy of enemies) {
+            if (enemy.slowTimer > 0) {
+                enemy.slowTimer -= dt;
+                enemy.speedMod = 0.5;
+            } else {
+                enemy.speedMod = 1;
+            }
+        }
+        
+        for (const boss of enemies) {
+            if (boss.isBoss) {
+                const auraRadius = 150;
+                for (const enemy of enemies) {
+                    if (!enemy.isBoss && distance(boss.x, boss.y, enemy.x, enemy.y) <= auraRadius) {
+                        enemy.speedMod = 1.6;
+                    }
+                }
+            }
+        }
+    }
+    
     for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
         const targetPoint = path[enemy.pathIndex + 1];
@@ -479,8 +666,17 @@ function fireProjectile(tower, target) {
     el.style.boxShadow = `0 0 8px ${tower.color}`;
     
     let speed = 500;
+    let isTracking = true;
+    let targetX = target.x;
+    let targetY = target.y;
+
     if (tower.type === 'bomb') {
         speed = 200;
+        isTracking = false;
+        const predicted = predictTargetPosition(tower, target, speed);
+        targetX = predicted.x;
+        targetY = predicted.y;
+        
         el.style.width = '12px';
         el.style.height = '12px';
     } else if (tower.type === 'sniper') {
@@ -494,8 +690,9 @@ function fireProjectile(tower, target) {
         x: tower.x,
         y: tower.y,
         target: target,
-        targetX: target.x,
-        targetY: target.y,
+        targetX: targetX,
+        targetY: targetY,
+        isTracking: isTracking,
         damage: tower.damage,
         towerInfo: tower,
         speed: speed
@@ -503,8 +700,16 @@ function fireProjectile(tower, target) {
 }
 
 function applyDamage(enemy, damage, tower) {
+    if (enemy.type === 'armored' && (tower.type === 'basic' || tower.type === 'sniper')) {
+        damage = Math.ceil(damage * 0.5);
+    }
+    
     enemy.health -= damage;
     tower.totalDamage += damage;
+    
+    if (tower.type === 'frost') {
+        enemy.slowTimer = 3;
+    }
     
     const oldLevel = tower.level;
     let nextXp = XP_THRESHOLDS[tower.level];
@@ -521,6 +726,15 @@ function applyDamage(enemy, damage, tower) {
         tower.levelEl.textContent = '★'.repeat(Math.min(5, tower.level));
         tower.levelEl.style.transform = 'scale(1.5)';
         setTimeout(() => { if (tower.levelEl) tower.levelEl.style.transform = 'scale(1)'; }, 200);
+        
+        const floatTxt = document.createElement('div');
+        floatTxt.className = 'floating-text';
+        floatTxt.textContent = 'Level Up!';
+        floatTxt.style.left = tower.x + 'px';
+        floatTxt.style.top = (tower.y - 20) + 'px';
+        gameBoard.appendChild(floatTxt);
+        setTimeout(() => floatTxt.remove(), 1000);
+        
         const towerEl = tower.levelEl.parentElement;
         if (towerEl) {
             const scale = 1 + (tower.level - 1) * 0.15;
@@ -541,6 +755,10 @@ function applyDamage(enemy, damage, tower) {
     }
     
     const hpPercent = Math.max(0, enemy.health / enemy.maxHealth);
+    if (enemy.health < enemy.maxHealth) {
+        enemy.healthBarContainer.classList.add('visible');
+    }
+    
     enemy.healthBar.style.width = (hpPercent * 100) + '%';
     if (hpPercent < 0.3) {
         enemy.healthBar.style.backgroundColor = '#f85149';
@@ -568,7 +786,7 @@ function updateProjectiles(dt) {
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const proj = projectiles[i];
         
-        if (enemies.includes(proj.target)) {
+        if (proj.isTracking && enemies.includes(proj.target)) {
             proj.targetX = proj.target.x;
             proj.targetY = proj.target.y;
         }

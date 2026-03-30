@@ -19,7 +19,7 @@
         </div>
         
         <div class="panel">
-            <div id="tower-selection">
+            <div id="tower-selection" style="display: none;">
                 <div class="tower-button selected" data-type="pointer">
                     <div>👆 Select</div>
                 </div>
@@ -37,8 +37,28 @@
                 </div>
             </div>
             
+            <div id="spells-selection">
+                <h3>Spells</h3>
+                <div class="spell-btn" id="btn-spell-meteor">
+                    <div class="spell-icon">☄️ Meteor (15s)</div>
+                    <div class="spell-cd-overlay" id="cd-meteor"></div>
+                </div>
+                <div class="spell-btn" id="btn-spell-freeze">
+                    <div class="spell-icon">❄️ Freeze (30s)</div>
+                    <div class="spell-cd-overlay" id="cd-freeze"></div>
+                </div>
+            </div>
+            
             <div id="game-board">
                 <div id="base"></div>
+                
+                <div id="build-popup" class="hidden">
+                    <button class="build-btn" data-type="basic">Basic ($50)</button>
+                    <button class="build-btn" data-type="sniper">Sniper ($100)</button>
+                    <button class="build-btn" data-type="bomb">Bomb ($150)</button>
+                    <button class="build-btn" data-type="frost">Frost ($100)</button>
+                    <button id="btn-close-build">Cancel</button>
+                </div>
                 
                 <div id="tower-popup" class="hidden">
                     <h3 id="popup-title">Tower</h3>
