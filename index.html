@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Defense</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="header">
+            <h1 class="title">Neon Defense</h1>
+            <div id="ui">
+                <div class="stat">🪙 <span id="money">200</span></div>
+                <div class="stat">❤️ <span id="lives">20</span></div>
+                <div class="stat">🌊 Wave: <span id="wave">1</span></div>
+                <button id="start-wave">Start Wave</button>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <div id="tower-selection">
+                <div class="tower-button selected" data-type="pointer">
+                    <div>👆 Select</div>
+                </div>
+                <div class="tower-button" data-type="basic">
+                    <div class="tower basic"></div>
+                    <div>Basic ($50)</div>
+                </div>
+                <div class="tower-button" data-type="sniper">
+                    <div class="tower sniper"></div>
+                    <div>Sniper ($100)</div>
+                </div>
+                <div class="tower-button" data-type="bomb">
+                    <div class="tower bomb"></div>
+                    <div>Bomb ($150)</div>
+                </div>
+            </div>
+            
+            <div id="game-board">
+                <div id="base"></div>
+                
+                <div id="tower-popup" class="hidden">
+                    <h3 id="popup-title">Tower</h3>
+                    <div class="popup-stat">Level: <span id="popup-level">1</span></div>
+                    <div class="popup-stat">Damage: <span id="popup-damage">0</span></div>
+                    <div class="popup-stat">Range: <span id="popup-range">0</span></div>
+                    <div class="popup-stat">Fire Rate: <span id="popup-firerate">0</span>s</div>
+                    <div class="popup-stat">Total Dmg: <span id="popup-total-dmg">0</span></div>
+                    
+                    <div class="xp-bar-container">
+                        <div class="xp-bar" id="popup-xp-bar"></div>
+                        <div class="xp-text"><span id="popup-xp-current">0</span> / <span id="popup-xp-next">500</span></div>
+                    </div>
+
+                    <button id="btn-sell">Sell ($<span id="popup-sell-price">0</span>)</button>
+                    <button id="btn-close-popup">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

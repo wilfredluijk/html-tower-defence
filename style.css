@@ -1,0 +1,427 @@
+:root {
+    --bg-color: #0d1117;
+    --board-bg: #161b22;
+    --path-color: rgba(255, 255, 255, 0.05);
+    --base-color: #3fb950;
+    --basic-tower: #58a6ff;
+    --sniper-tower: #bc8cff;
+    --bomb-tower: #ffaa00;
+    --square-enemy: #f85149;
+    --triangle-enemy: #d29922;
+    --text-color: #c9d1d9;
+    --border-color: #30363d;
+}
+
+body {
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+#header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 15px;
+}
+
+.title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+#ui {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.stat {
+    font-size: 18px;
+    font-weight: bold;
+    background: var(--board-bg);
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+#start-wave {
+    background: #238636;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s, transform 0.1s;
+}
+
+#start-wave:hover {
+    background: #2ea043;
+}
+
+#start-wave:active {
+    transform: scale(0.95);
+}
+
+#start-wave:disabled {
+    background: var(--border-color);
+    color: #8b949e;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.panel {
+    display: flex;
+    gap: 20px;
+}
+
+#tower-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+    background: var(--board-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.tower-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.2s;
+    font-weight: bold;
+}
+
+.tower-button:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tower-button.selected {
+    border-color: #58a6ff;
+    background: rgba(88, 166, 255, 0.1);
+    box-shadow: 0 0 15px rgba(88, 166, 255, 0.2);
+}
+
+.tower-button .tower {
+    position: static;
+    transform: none;
+    width: 20px;
+    height: 20px;
+    box-shadow: none;
+}
+
+#game-board {
+    width: 800px;
+    height: 600px;
+    background-color: var(--board-bg);
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+#base {
+    width: 60px;
+    height: 60px;
+    background-color: var(--base-color);
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 20px var(--base-color);
+    z-index: 10;
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.1s, transform 0.1s;
+}
+
+#base::after {
+    content: '★';
+    font-size: 24px;
+    color: white;
+}
+
+.path-point {
+    width: 10px;
+    height: 10px;
+    background-color: var(--path-color);
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+
+.path-segment {
+    position: absolute;
+    background-color: var(--path-color);
+    transform-origin: 0 50%;
+    height: 40px;
+    margin-top: -20px;
+    z-index: 1;
+    border-radius: 20px;
+}
+
+.tower-spot {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    border-radius: 8px;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.tower-spot:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.tower {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    border: 3px solid rgba(255, 255, 255, 0.4);
+    transition: transform 0.1s;
+}
+
+.tower.basic {
+    background-color: var(--basic-tower);
+    box-shadow: 0 0 15px var(--basic-tower);
+}
+
+.tower.sniper {
+    background-color: var(--sniper-tower);
+    box-shadow: 0 0 15px var(--sniper-tower);
+}
+
+.tower.bomb {
+    background-color: var(--bomb-tower);
+    box-shadow: 0 0 15px var(--bomb-tower);
+}
+
+.tower-range {
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 4;
+}
+
+.enemy {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 30;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.shape {
+    transition: transform 0.1s linear, filter 0.1s;
+}
+
+.shape.square {
+    width: 20px;
+    height: 20px;
+    background-color: var(--square-enemy);
+    box-shadow: 0 0 10px var(--square-enemy);
+    border-radius: 3px;
+    border: 2px solid rgba(255,255,255,0.3);
+}
+
+.shape.triangle {
+    width: 0;
+    height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-bottom: 26px solid var(--triangle-enemy);
+    filter: drop-shadow(0 0 8px var(--triangle-enemy));
+}
+
+.health-bar-container {
+    width: 120%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.8);
+    position: absolute;
+    top: -12px;
+    left: -10%;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.health-bar {
+    height: 100%;
+    background: #3fb950;
+    width: 100%;
+    transition: width 0.1s linear, background-color 0.2s;
+}
+
+.projectile {
+    width: 8px;
+    height: 8px;
+    background-color: #fff;
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 40;
+    box-shadow: 0 0 8px #fff;
+}
+
+.explosion {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--bomb-tower) 0%, transparent 70%);
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 45;
+    pointer-events: none;
+    transition: transform 0.2s ease-out, opacity 0.2s;
+    opacity: 0.8;
+}
+
+#tower-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--board-bg);
+    border: 2px solid var(--border-color);
+    padding: 20px;
+    border-radius: 12px;
+    z-index: 100;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 150px;
+}
+
+#tower-popup.hidden {
+    display: none;
+}
+
+#tower-popup h3 {
+    margin: 0 0 5px 0;
+    color: #fff;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.popup-stat {
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+}
+
+#tower-popup button {
+    margin-top: 5px;
+    padding: 8px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+}
+
+#btn-sell {
+    background: #da3633;
+}
+
+#btn-sell:hover {
+    background: #f85149;
+}
+
+#btn-close-popup {
+    background: #30363d;
+}
+
+#btn-close-popup:hover {
+    background: #484f58;
+}
+
+.tower-level {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    background: #f1c40f;
+    color: #000;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 4px;
+    box-shadow: 0 0 5px #f1c40f;
+    pointer-events: none;
+    z-index: 25;
+    transition: transform 0.2s;
+}
+
+.xp-bar-container {
+    width: 100%;
+    height: 14px;
+    background: var(--bg-color);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 5px;
+    border: 1px solid var(--border-color);
+}
+
+.xp-bar {
+    height: 100%;
+    background: #58a6ff;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+.xp-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    font-size: 10px;
+    line-height: 14px;
+    color: white;
+    font-family: monospace;
+    text-shadow: 1px 1px 0 #000;
+}
