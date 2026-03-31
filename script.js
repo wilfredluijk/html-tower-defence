@@ -125,6 +125,15 @@ function showBuildPopup(spot) {
     buildPopup.style.top = spot.y + 'px';
     buildPopup.classList.remove('hidden');
     
+    document.querySelectorAll('.build-btn').forEach(btn => {
+        const type = btn.dataset.type;
+        if (money < towerTypes[type].cost) {
+            btn.classList.add('disabled');
+        } else {
+            btn.classList.remove('disabled');
+        }
+    });
+    
     if (spot.rangeEl) spot.rangeEl.style.display = 'none';
 }
 
@@ -779,6 +788,14 @@ function applyDamage(enemy, damage, tower) {
         if (index > -1) enemies.splice(index, 1);
         money += enemy.reward;
         updateUI();
+        
+        const floatMoney = document.createElement('div');
+        floatMoney.className = 'floating-money';
+        floatMoney.textContent = '+$' + enemy.reward;
+        floatMoney.style.left = enemy.x + 'px';
+        floatMoney.style.top = enemy.y + 'px';
+        gameBoard.appendChild(floatMoney);
+        setTimeout(() => floatMoney.remove(), 1000);
     }
 }
 
