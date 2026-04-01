@@ -29,7 +29,6 @@ let currentSpellSelection = null;
 const XP_THRESHOLDS = [0, 500, 1500, 3000, 6000];
 
 const buildPopup = document.getElementById('build-popup');
-const btnCloseBuild = document.getElementById('btn-close-build');
 
 const towerPopup = document.getElementById('tower-popup');
 const popupTitle = document.getElementById('popup-title');
@@ -136,11 +135,6 @@ function showBuildPopup(spot) {
     
     if (spot.rangeEl) spot.rangeEl.style.display = 'none';
 }
-
-btnCloseBuild.addEventListener('click', (e) => {
-    e.stopPropagation();
-    hideBuildPopup();
-});
 
 document.querySelectorAll('.build-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
